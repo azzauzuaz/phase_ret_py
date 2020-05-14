@@ -3,6 +3,7 @@
 import numpy as np
 import phase_ret_algs as alg
 from tqdm import tqdm
+import cv2
 
 def get_dim(filename):
 
@@ -21,24 +22,33 @@ def print_modulus(comp_data, filename, bits):
 
     data=np.absolute(comp_data)
 
-    f= open(filename,"w")
-
     ngrey = np.power(2,bits)-1
-    f.write("P2\n"+str(x_dim)+" "+str(y_dim)+"\n"+str(ngrey)+"\n")
-    max=0
-    for i in range(data.shape[0]):
-        for j in range(data.shape[1]):
-            if data[i][j]>max:
-                max=data[i][j]
+
+    max=np.amax(data)
+
     if max==0:
         max=1
 
-    for i in range(data.shape[0]):
-        for j in range(data.shape[1]):
-            temp = np.absolute( 1.*ngrey*data[i][j]/max).astype(int)
-            f.write(str(temp)+"\n")
+    data=np.absolute(1.*ngrey*data/max).astype(int)
 
-    f.close()
+    cv2.imwrite(filename, data)
+
+def print_modulus_raw(comp_data, filename, bits):
+
+    data=np.absolute(comp_data)
+
+    ngrey = np.power(2,bits)-1
+
+    head="P2\n"+str(x_dim)+" "+str(y_dim)+"\n"+str(ngrey)
+
+    max=np.amax(data)
+
+    if max==0:
+        max=1
+
+    data=np.absolute(1.*ngrey*data/max).astype(int)
+
+    np.savetxt(filename, data, header=head, comments='', fmt='%i')
 
 SQUARE_ROOT=1
 STEPS=100
@@ -62,25 +72,16 @@ intensities=intensities.reshape((x_dim,y_dim))
 support=support.reshape((x_dim,y_dim))
 input_data=input_data.reshape((x_dim,y_dim))
 
-print("Dimensions: "+str(x_dim)+" x "+str(y_dim))
+print("Dimensions:", x_dim, "x", y_dim)
 
-reg_density=0
-for i in range(support.shape[0]):
-    for j in range(support.shape[1]):
-        if support[i][j]!=0:
-            reg_density+=1
+sigma=support.size/np.count_nonzero(support)
 
-sigma=support.size/reg_density
-
-print("Over-sampling ratio: "+str(sigma))
+print("Over-sampling ratio:",sigma)
 
 print("Setting up the pattern ...")
 
 if SQUARE_ROOT:
-    for i in range(intensities.shape[0]):
-        for j in range(intensities.shape[1]):
-            if intensities[i][j]>=0:
-                intensities[i][j]=np.sqrt(intensities[i][j])
+    intensities=np.sqrt(intensities)
 
 intensities=np.fft.fftshift(intensities)
 
@@ -104,7 +105,7 @@ for i in range(data.shape[0]):
 
 data=np.fft.ifft2(data)
 
-print_modulus(data, "OUTPUT/start.pgm", 8)
+print_modulus_raw(data, "OUTPUT/start.pgm", 8)
 
 error_file=open("OUTPUT/error.dat", "w", buffering=1)
 
@@ -115,10 +116,10 @@ for i_step in tqdm(range(STEPS)):
     data=alg.HIO(intensities, support, data, HIO_ITERATIONS , HIO_BETA)
     error=alg.get_error(data, support, intensities)
     error_file.write(str(i_step)+"   "+str(error)+"\n")
-    print_modulus(data, "OUTPUT/density.pgm", 8)
+    print_modulus_raw(data, "OUTPUT/density.pgm", 8)
 
-print_modulus(data, "OUTPUT/density_final.pgm", 8)
+print_modulus_raw(data, "OUTPUT/density_final.pgm", 8)
 
 error_file.close()
 
-print("Final precision: "+str(error))
+print("Final precision: ", error)
