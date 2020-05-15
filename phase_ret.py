@@ -21,11 +21,8 @@ def get_dim(filename):
 def print_modulus(comp_data, filename, bits):
 
     data=np.absolute(comp_data)
-
     ngrey = np.power(2,bits)-1
-
     max=np.amax(data)
-
     if max==0:
         max=1
 
@@ -36,13 +33,9 @@ def print_modulus(comp_data, filename, bits):
 def print_modulus_raw(comp_data, filename, bits):
 
     data=np.absolute(comp_data)
-
     ngrey = np.power(2,bits)-1
-
     head="P2\n"+str(x_dim)+" "+str(y_dim)+"\n"+str(ngrey)
-
     max=np.amax(data)
-
     if max==0:
         max=1
 

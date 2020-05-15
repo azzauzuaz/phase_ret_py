@@ -117,7 +117,7 @@ py::array_t<std::complex<double>> HIO(py::array_t<double> intensities, py::array
     fftw_complex* buffer_r_space = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*npix);
 
     //memcpy ?
-    for(int i=0; i<x_dim; i++){
+    for(int i=0; i<npix; i++){
         data[i][0]=std::real(data_ptr[i]);
         data[i][1]=std::imag(data_ptr[i]);
         buffer_r_space[i][0]=std::real(data_ptr[i]);   // make a copy of "r_space" into "buffer_r_space"
