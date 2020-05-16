@@ -8,7 +8,7 @@ void normalize(fftw_complex *vett, double mod, int npix){
     }
 };
 
-void sub_intensities(fftw_complex* data, py::array_t<double> intensities){
+void sub_intensities(fftw_complex* data, py::array_t<double, py::array::c_style> intensities){
     py::buffer_info int_buf = intensities.request();
     double *int_ptr = (double *) int_buf.ptr;
 
@@ -31,7 +31,7 @@ void sub_intensities(fftw_complex* data, py::array_t<double> intensities){
     }
 };
 
-void apply_support_er(fftw_complex *r_space, py::array_t<double> support){
+void apply_support_er(fftw_complex *r_space, py::array_t<double, py::array::c_style> support){
     py::buffer_info supp_buf = support.request();
     double *supp_ptr = (double *) supp_buf.ptr;
 
@@ -41,7 +41,7 @@ void apply_support_er(fftw_complex *r_space, py::array_t<double> support){
     }
 };
 
-void apply_support_hio(fftw_complex *r_space, py::array_t<double> support, fftw_complex *buffer_r_space, double beta){
+void apply_support_hio(fftw_complex *r_space, py::array_t<double, py::array::c_style> support, fftw_complex *buffer_r_space, double beta){
     py::buffer_info supp_buf = support.request();
     double *supp_ptr = (double *) supp_buf.ptr;
 
@@ -54,7 +54,7 @@ void apply_support_hio(fftw_complex *r_space, py::array_t<double> support, fftw_
     }
 };
 
-py::array_t<std::complex<double>> ER(py::array_t<double> intensities, py::array_t<double> support, py::array_t<std::complex<double>> r_space, int n_iterations){
+py::array_t<std::complex<double>, py::array::c_style> ER(py::array_t<double, py::array::c_style> intensities, py::array_t<double, py::array::c_style> support, py::array_t<std::complex<double>, py::array::c_style> r_space, int n_iterations){
     py::buffer_info data_buf = r_space.request();
     std::complex<double> *data_ptr = (std::complex<double> *) data_buf.ptr;
 
@@ -85,7 +85,7 @@ py::array_t<std::complex<double>> ER(py::array_t<double> intensities, py::array_
 
     }
 
-    auto output = py::array_t<std::complex<double>>(npix);
+    auto output = py::array_t<std::complex<double>, py::array::c_style>(npix);
     py::buffer_info out_buf = output.request();
     std::complex<double> *out_ptr = (std::complex<double> *) out_buf.ptr;
 
@@ -104,7 +104,7 @@ py::array_t<std::complex<double>> ER(py::array_t<double> intensities, py::array_
     return output;
 };
 
-py::array_t<std::complex<double>> HIO(py::array_t<double> intensities, py::array_t<double> support, py::array_t<std::complex<double>> r_space, int n_iterations, double beta){
+py::array_t<std::complex<double>, py::array::c_style> HIO(py::array_t<double, py::array::c_style> intensities, py::array_t<double, py::array::c_style> support, py::array_t<std::complex<double>, py::array::c_style> r_space, int n_iterations, double beta){
     py::buffer_info data_buf = r_space.request();
     std::complex<double> *data_ptr = (std::complex<double> *) data_buf.ptr;
 
@@ -137,7 +137,7 @@ py::array_t<std::complex<double>> HIO(py::array_t<double> intensities, py::array
         apply_support_hio(data, support, buffer_r_space, beta);  // see directly the comment in the function
     }
 
-    auto output = py::array_t<std::complex<double>>(npix);
+    auto output = py::array_t<std::complex<double>, py::array::c_style>(npix);
     py::buffer_info out_buf = output.request();
     std::complex<double> *out_ptr = (std::complex<double> *) out_buf.ptr;
 
@@ -157,7 +157,7 @@ py::array_t<std::complex<double>> HIO(py::array_t<double> intensities, py::array
     return output;
 };
 
-double get_error(py::array_t<std::complex<double>> data, py::array_t<double> support, py::array_t<double> intensities){
+double get_error(py::array_t<std::complex<double>, py::array::c_style> data, py::array_t<double, py::array::c_style> support, py::array_t<double, py::array::c_style> intensities){
     py::buffer_info buf_data = data.request();
     py::buffer_info buf_supp = support.request();
     py::buffer_info buf_int = intensities.request();
