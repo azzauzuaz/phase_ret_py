@@ -85,7 +85,10 @@ if MASK:
                 intensities[i][j]=-1
 
 if SQUARE_ROOT:
-    intensities=np.sqrt(intensities)
+    for i in range(intensities.shape[0]):
+        for j in range(intensities.shape[1]):
+            if intensities[i][j]>=0:
+                 intensities[i][j]=np.sqrt(intensities[i][j])
 
 intensities=np.fft.fftshift(intensities)
 
