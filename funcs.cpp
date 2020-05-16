@@ -65,11 +65,7 @@ py::array_t<std::complex<double>, py::array::c_style> ER(py::array_t<double, py:
 
     fftw_complex* data=(fftw_complex*) fftw_malloc(sizeof(fftw_complex)*npix);
 
-    //memcpy ?
-    for(int i=0; i<npix; i++){
-        data[i][0]=std::real(data_ptr[i]);
-        data[i][1]=std::imag(data_ptr[i]);
-    }
+    memcpy(data, data_ptr, npix*sizeof(std::complex<double>));
 
     fftw_plan p2k = fftw_plan_dft_2d(x_dim, y_dim, data, data, FFTW_BACKWARD, FFTW_ESTIMATE); //direttive per andare dal diretto al reciproco
     fftw_plan p2r = fftw_plan_dft_2d(x_dim, y_dim, data, data, FFTW_FORWARD, FFTW_ESTIMATE);
@@ -89,11 +85,7 @@ py::array_t<std::complex<double>, py::array::c_style> ER(py::array_t<double, py:
     py::buffer_info out_buf = output.request();
     std::complex<double> *out_ptr = (std::complex<double> *) out_buf.ptr;
 
-    //memcpy ?
-    for(int i=0; i<npix; i++){
-        out_ptr[i].real(data[i][0]);
-        out_ptr[i].imag(data[i][1]);
-    }
+    memcpy(out_ptr, data, npix*sizeof(std::complex<double>));
 
     fftw_destroy_plan(p2k);
     fftw_destroy_plan(p2r);
@@ -116,13 +108,8 @@ py::array_t<std::complex<double>, py::array::c_style> HIO(py::array_t<double, py
     fftw_complex* data=(fftw_complex*) fftw_malloc(sizeof(fftw_complex)*npix);
     fftw_complex* buffer_r_space = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*npix);
 
-    //memcpy ?
-    for(int i=0; i<npix; i++){
-        data[i][0]=std::real(data_ptr[i]);
-        data[i][1]=std::imag(data_ptr[i]);
-        buffer_r_space[i][0]=std::real(data_ptr[i]);   // make a copy of "r_space" into "buffer_r_space"
-        buffer_r_space[i][1]=std::real(data_ptr[i]);   // make a copy of "r_space" into "buffer_r_space"
-    }
+    memcpy(data, data_ptr, npix*sizeof(std::complex<double>));
+    memcpy(buffer_r_space, data_ptr, npix*sizeof(std::complex<double>));
 
     fftw_plan p2k = fftw_plan_dft_2d(x_dim, y_dim, data, data, FFTW_BACKWARD, FFTW_ESTIMATE); //direttive per andare dal diretto al reciproco
     fftw_plan p2r = fftw_plan_dft_2d(x_dim, y_dim, data, data, FFTW_FORWARD, FFTW_ESTIMATE);
@@ -141,11 +128,7 @@ py::array_t<std::complex<double>, py::array::c_style> HIO(py::array_t<double, py
     py::buffer_info out_buf = output.request();
     std::complex<double> *out_ptr = (std::complex<double> *) out_buf.ptr;
 
-    //memcpy ?
-    for(int i=0; i<npix; i++){
-        out_ptr[i].real(data[i][0]);
-        out_ptr[i].imag(data[i][1]);
-    }
+    memcpy(out_ptr, data, npix*sizeof(std::complex<double>));
 
     fftw_free(buffer_r_space);
     fftw_destroy_plan(p2k);
@@ -172,7 +155,7 @@ double get_error(py::array_t<std::complex<double>, py::array::c_style> data, py:
 
     fftw_complex* local_data=(fftw_complex*) fftw_malloc(sizeof(fftw_complex)*npix);
 
-    //memcpy ?
+    //memcpy
     for(int i=0; i<npix; i++){
         local_data[i][0]=ptr_supp[i]*std::real(ptr_data[i]);    // put densities in the real part
         local_data[i][1]=ptr_supp[i]*std::imag(ptr_data[i]);    // put zero in the imaginary part
@@ -190,7 +173,6 @@ double get_error(py::array_t<std::complex<double>, py::array::c_style> data, py:
                    (ptr_int[i]-sqrt(local_data[i][0]*local_data[i][0]+ local_data[i][1]*local_data[i][1]));    // tot = SUM_j | sqrt(Exp) - |FFT(real_random)| |
         }
     }
-
 
     double error=sqrt(tot)/sum;     // l'errore reale e' il rapporto tra la densita' fuori dal supporto e quella totale
 
