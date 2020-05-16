@@ -43,10 +43,11 @@ def print_modulus_raw(comp_data, filename, bits):
 
     np.savetxt(filename, data, header=head, comments='', fmt='%i')
 
-SQUARE_ROOT=1
-STEPS=100
+STEPS=400
 ER_ITERATIONS=20
 HIO_ITERATIONS=20
+SQUARE_ROOT=True
+MASK=False
 
 HIO_BETA=0.75
 R_COEFF=1
@@ -55,15 +56,19 @@ np.random.seed(1995)
 
 print("Reading data...")
 
-x_dim,y_dim=get_dim("INPUT/intensities.raw")
+x_dim,y_dim=get_dim("INPUT/intensities.pgm")
 
-intensities=np.loadtxt("INPUT/intensities.raw", skiprows=3)
-support=np.loadtxt("INPUT/support.raw", skiprows=3)
-input_data=np.loadtxt("INPUT/density.raw", skiprows=3)
+intensities=np.loadtxt("INPUT/intensities.pgm", skiprows=3)
+support=np.loadtxt("INPUT/support.pgm", skiprows=3)
+input_data=np.loadtxt("INPUT/density.pgm", skiprows=3)
 
 intensities=intensities.reshape((x_dim,y_dim))
 support=support.reshape((x_dim,y_dim))
 input_data=input_data.reshape((x_dim,y_dim))
+
+if MASK:
+    mask=np.loadtxt("INPUT/mask.pgm", skiprows=3)
+    mask=mask.reshape((x_dim,y_dim))
 
 print("Dimensions:", x_dim, "x", y_dim)
 
@@ -72,6 +77,12 @@ sigma=support.size/np.count_nonzero(support)
 print("Over-sampling ratio:",sigma)
 
 print("Setting up the pattern ...")
+
+if MASK:
+    for i in range(mask.shape[0]):
+        for j in range(mask.shape[1]):
+            if mask[i][j]>0:
+                intensities[i][j]=-1
 
 if SQUARE_ROOT:
     intensities=np.sqrt(intensities)
@@ -105,8 +116,8 @@ error_file=open("OUTPUT/error.dat", "w", buffering=1)
 print("Mainloop ...")
 
 for i_step in tqdm(range(STEPS)):
-    data=alg.ER(intensities, support, data, ER_ITERATIONS)
     data=alg.HIO(intensities, support, data, HIO_ITERATIONS , HIO_BETA)
+    data=alg.ER(intensities, support, data, ER_ITERATIONS)
     error=alg.get_error(data, support, intensities)
     error_file.write(str(i_step)+"   "+str(error)+"\n")
     print_modulus_raw(data, "OUTPUT/density.pgm", 8)
