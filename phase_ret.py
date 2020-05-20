@@ -49,6 +49,7 @@ HIO_ITERATIONS=20
 SQUARE_ROOT=True
 MASK=False
 
+IMPOSE_REALITY=False
 HIO_BETA=0.75
 R_COEFF=1
 
@@ -119,8 +120,8 @@ error_file=open("OUTPUT/error.dat", "w", buffering=1)
 print("Mainloop ...")
 
 for i_step in tqdm(range(STEPS)):
-    data=alg.HIO(intensities, support, data, HIO_ITERATIONS , HIO_BETA)
-    data=alg.ER(intensities, support, data, ER_ITERATIONS)
+    data=alg.HIO(intensities, support, data, HIO_ITERATIONS , HIO_BETA, IMPOSE_REALITY)
+    data=alg.ER(intensities, support, data, ER_ITERATIONS, IMPOSE_REALITY)
     error=alg.get_error(data, support, intensities)
     error_file.write(str(i_step)+"   "+str(error)+"\n")
     print_modulus_raw(data, "OUTPUT/density.pgm", 8)
