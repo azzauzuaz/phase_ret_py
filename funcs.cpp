@@ -2,6 +2,7 @@
 
 void normalize(fftw_complex *vett, double mod, int npix){
 
+    #pragma omp parallel for
     for(int i=0; i<npix; i++){
         vett[i][0]=vett[i][0]*1./mod;
         vett[i][1]=vett[i][1]*1./mod;
@@ -12,6 +13,7 @@ void sub_intensities(fftw_complex* data, py::array_t<double, py::array::c_style>
     py::buffer_info int_buf = intensities.request();
     double *int_ptr = (double *) int_buf.ptr;
 
+    #pragma omp parallel for
     for(int i=0; i<int_buf.size; i++){
         if(int_ptr[i]>-1){  //se il pixel del pattern e' noto
             double m=(data[i][1]*data[i][1]+data[i][0]*data[i][0]);
@@ -35,6 +37,7 @@ void apply_support_er(fftw_complex *r_space, py::array_t<double, py::array::c_st
     py::buffer_info supp_buf = support.request();
     double *supp_ptr = (double *) supp_buf.ptr;
 
+    #pragma omp parallel for
     for(int i=0; i<supp_buf.size; i++){
         r_space[i][0]=r_space[i][0]*supp_ptr[i];
         if(impose_reality)
@@ -48,6 +51,7 @@ void apply_support_hio(fftw_complex *r_space, py::array_t<double, py::array::c_s
     py::buffer_info supp_buf = support.request();
     double *supp_ptr = (double *) supp_buf.ptr;
 
+    #pragma omp parallel for
     for(int i=0; i<supp_buf.size; i++){
         r_space[i][0]=(buffer_r_space[i][0]-beta*r_space[i][0])*(1.-supp_ptr[i]) + r_space[i][0]*supp_ptr[i];
         if(impose_reality)

@@ -1,5 +1,3 @@
-#!/usr/local/bin/python3
-
 import numpy as np
 import phase_ret_algs as alg
 from tqdm import tqdm
@@ -43,7 +41,9 @@ def print_modulus_raw(comp_data, filename, bits):
 
     np.savetxt(filename, data, header=head, comments='', fmt='%i')
 
-STEPS=400
+alg.init()
+
+STEPS=4000
 ER_ITERATIONS=20
 HIO_ITERATIONS=20
 SQUARE_ROOT=True
