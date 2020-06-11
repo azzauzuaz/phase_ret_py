@@ -49,6 +49,9 @@ HIO_ITERATIONS=20
 SQUARE_ROOT=True
 MASK=False
 
+POISSON=True
+photons=2000000
+
 IMPOSE_REALITY=False
 HIO_BETA=0.75
 R_COEFF=1
@@ -78,6 +81,13 @@ sigma=support.size/np.count_nonzero(support)
 print("Over-sampling ratio:",sigma)
 
 print("Setting up the pattern ...")
+
+if POISSON:
+    max_val=np.max(intensities)
+    intensities=intensities/max_val*photons
+    for i in range(intensities.shape[0]):
+        for j in range(intensities.shape[1]):
+            intensities[i][j]=np.random.poisson(intensities[i][j])
 
 if MASK:
     for i in range(mask.shape[0]):
