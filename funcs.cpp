@@ -9,6 +9,32 @@ void normalize(fftw_complex *vett, double mod, int npix){
     }
 };
 
+void shift(fftw_complex* data, int x_trasl, int y_trasl, int x_dim, int y_dim){
+    if(x_trasl==-1)
+        x_trasl=x_dim/2;
+
+    if(y_trasl==-1)
+        y_trasl=y_dim/2;
+
+    fftw_complex* temp= (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*x_dim*y_dim);
+
+    for(int i=0; i<x_dim; i++){
+        int ii = (i + x_trasl) % x_dim;
+        for(int j=0; j<y_dim; j++){
+            int jj = (j + y_trasl) % y_dim;
+            temp[ii * y_dim + jj][0] = data[i * y_dim + j][0];
+            temp[ii * y_dim + jj][1] = data[i * y_dim + j][1];
+        }
+    }
+
+    for(int i=0; i<x_dim*y_dim; i++){
+        data[i][0]=temp[i][0];
+        data[i][1]=temp[i][1];
+    }
+
+    fftw_free(temp);
+}
+
 void sub_intensities(fftw_complex* data, py::array_t<double, py::array::c_style> intensities){
     py::buffer_info int_buf = intensities.request();
     double *int_ptr = (double *) int_buf.ptr;
@@ -33,9 +59,9 @@ void sub_intensities(fftw_complex* data, py::array_t<double, py::array::c_style>
     }
 };
 
-void apply_support_er(fftw_complex *r_space, py::array_t<double, py::array::c_style> support, bool impose_reality){
+void apply_support_er(fftw_complex *r_space, py::array_t<int, py::array::c_style> support, bool impose_reality){
     py::buffer_info supp_buf = support.request();
-    double *supp_ptr = (double *) supp_buf.ptr;
+    int *supp_ptr = (int *) supp_buf.ptr;
 
     #pragma omp parallel for
     for(int i=0; i<supp_buf.size; i++){
@@ -47,9 +73,9 @@ void apply_support_er(fftw_complex *r_space, py::array_t<double, py::array::c_st
     }
 };
 
-void apply_support_hio(fftw_complex *r_space, py::array_t<double, py::array::c_style> support, fftw_complex *buffer_r_space, double beta, bool impose_reality){
+void apply_support_hio(fftw_complex *r_space, py::array_t<int, py::array::c_style> support, fftw_complex *buffer_r_space, double beta, bool impose_reality){
     py::buffer_info supp_buf = support.request();
-    double *supp_ptr = (double *) supp_buf.ptr;
+    int *supp_ptr = (int *) supp_buf.ptr;
 
     #pragma omp parallel for
     for(int i=0; i<supp_buf.size; i++){
@@ -64,7 +90,7 @@ void apply_support_hio(fftw_complex *r_space, py::array_t<double, py::array::c_s
     }
 };
 
-py::array_t<std::complex<double>, py::array::c_style> ER(py::array_t<double, py::array::c_style> intensities, py::array_t<double, py::array::c_style> support, py::array_t<std::complex<double>, py::array::c_style> r_space, int n_iterations, bool impose_reality){
+py::array_t<std::complex<double>, py::array::c_style> ER(py::array_t<double, py::array::c_style> intensities, py::array_t<int, py::array::c_style> support, py::array_t<std::complex<double>, py::array::c_style> r_space, int n_iterations, bool impose_reality){
     py::buffer_info data_buf = r_space.request();
     std::complex<double> *data_ptr = (std::complex<double> *) data_buf.ptr;
 
@@ -106,7 +132,7 @@ py::array_t<std::complex<double>, py::array::c_style> ER(py::array_t<double, py:
     return output;
 };
 
-py::array_t<std::complex<double>, py::array::c_style> HIO(py::array_t<double, py::array::c_style> intensities, py::array_t<double, py::array::c_style> support, py::array_t<std::complex<double>, py::array::c_style> r_space, int n_iterations, double beta, bool impose_reality){
+py::array_t<std::complex<double>, py::array::c_style> HIO(py::array_t<double, py::array::c_style> intensities, py::array_t<int, py::array::c_style> support, py::array_t<std::complex<double>, py::array::c_style> r_space, int n_iterations, double beta, bool impose_reality){
     py::buffer_info data_buf = r_space.request();
     std::complex<double> *data_ptr = (std::complex<double> *) data_buf.ptr;
 
@@ -150,12 +176,104 @@ py::array_t<std::complex<double>, py::array::c_style> HIO(py::array_t<double, py
     return output;
 };
 
-double get_error(py::array_t<std::complex<double>, py::array::c_style> data, py::array_t<double, py::array::c_style> support, py::array_t<double, py::array::c_style> intensities){
+py::array_t<int, py::array::c_style> ShrinkWrap(py::array_t<std::complex<double>, py::array::c_style> r_space, py::array_t<int, py::array::c_style> support, double sigma, double tau){
+
+    py::buffer_info data_buf = r_space.request();
+    std::complex<double> *data_ptr = (std::complex<double> *) data_buf.ptr;
+
+    int x_dim=data_buf.shape[0];
+    int y_dim=data_buf.shape[1];
+
+    int npix=x_dim*y_dim;
+
+    fftw_complex* data=(fftw_complex*) fftw_malloc(sizeof(fftw_complex)*npix);
+
+    memcpy(data, data_ptr, npix*sizeof(std::complex<double>));
+
+    //module
+    for(int i=0; i<npix; i++){
+        data[i][0]=sqrt(data[i][0]*data[i][0]+ data[i][1]*data[i][1]);
+        data[i][1]=0;
+    }
+
+    //prepare gaussian filter
+    fftw_complex* gaussian=(fftw_complex*) fftw_malloc(sizeof(fftw_complex)*npix);
+
+    double sum=0;
+
+    for(int i=0; i<npix; i++){
+        double x=i%x_dim;
+        double y=(int)i/x_dim;
+        gaussian[i][0]=1./(sigma*sigma*2.*M_PI)*exp(-((x-x_dim/2.)*(x-x_dim/2.)+ (y-y_dim/2.)*(y-y_dim/2.))/(2.*sigma*sigma));
+        sum+=gaussian[i][0];
+        gaussian[i][1]=0;
+    }
+
+    for(int i=0; i<npix; i++)
+        gaussian[i][0]=gaussian[i][0]/sum;
+
+    //prepare FT plans
+    fftw_plan data_p2k = fftw_plan_dft_2d(x_dim, y_dim, data, data, FFTW_BACKWARD, FFTW_ESTIMATE);
+    fftw_plan data_p2r = fftw_plan_dft_2d(x_dim, y_dim, data, data, FFTW_FORWARD, FFTW_ESTIMATE);
+    fftw_plan gauss_p2k = fftw_plan_dft_2d(x_dim, y_dim, gaussian, gaussian, FFTW_BACKWARD, FFTW_ESTIMATE);
+
+    //FT
+    fftw_execute(data_p2k);
+    fftw_execute(gauss_p2k);
+
+    //complex multiplication
+    for(int i=0; i<npix; i++){
+        double re=data[i][0]*gaussian[i][0]-data[i][1]*gaussian[i][1];
+        double im=data[i][0]*gaussian[i][1]+data[i][1]*gaussian[i][0];
+        data[i][0]=re;
+        data[i][1]=im;
+    }
+
+    //IFT
+    fftw_execute(data_p2r);
+
+    //shift
+    shift(data, -1, -1, x_dim, y_dim);
+
+    //find max
+    double max=0;
+    for(int i=0; i<npix; i++){
+        double val=sqrt(data[i][0]*data[i][0] + data[i][1]*data[i][1]);
+        //if(original[i]>0)
+        if(val>max)
+            max=val;
+    }
+
+    auto output = py::array_t<int>(npix);
+    py::buffer_info out_buf = output.request();
+    int *out_ptr = (int *) out_buf.ptr;
+
+    //assign output
+    for(int i=0; i<npix; i++){
+        out_ptr[i]=0;
+        double val=sqrt(data[i][0]*data[i][0]+ data[i][1]*data[i][1]);
+        if(val>tau*max)
+            //if(original[i]>0)
+            out_ptr[i]=1;
+    }
+
+    fftw_destroy_plan(gauss_p2k);
+    fftw_destroy_plan(data_p2k);
+    fftw_destroy_plan(data_p2r);
+    fftw_free(data);
+    fftw_free(gaussian);
+
+    output.resize({x_dim,y_dim});
+
+    return output;
+};
+
+double get_error(py::array_t<std::complex<double>, py::array::c_style> data, py::array_t<int, py::array::c_style> support, py::array_t<double, py::array::c_style> intensities){
     py::buffer_info buf_data = data.request();
     py::buffer_info buf_supp = support.request();
     py::buffer_info buf_int = intensities.request();
     std::complex<double> *ptr_data = (std::complex<double> *) buf_data.ptr;
-    double *ptr_supp = (double *) buf_supp.ptr;
+    int *ptr_supp = (int *) buf_supp.ptr;
     double *ptr_int = (double *) buf_int.ptr;
 
     int x_dim=buf_data.shape[0];

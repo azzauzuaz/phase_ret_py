@@ -52,6 +52,9 @@ MASK=False
 POISSON=True
 photons=2000000
 
+sigma=4
+tau=0.04
+
 IMPOSE_REALITY=False
 HIO_BETA=0.75
 R_COEFF=1
@@ -63,7 +66,7 @@ print("Reading data...")
 x_dim,y_dim=get_dim("INPUT/intensities.pgm")
 
 intensities=np.loadtxt("INPUT/intensities.pgm", skiprows=3)
-support=np.loadtxt("INPUT/support.pgm", skiprows=3)
+support=np.loadtxt("INPUT/support.pgm", skiprows=3).astype('int32')
 input_data=np.loadtxt("INPUT/density.pgm", skiprows=3)
 
 intensities=intensities.reshape((x_dim,y_dim))
@@ -76,9 +79,9 @@ if MASK:
 
 print("Dimensions:", x_dim, "x", y_dim)
 
-sigma=support.size/np.count_nonzero(support)
+osr=support.size/np.count_nonzero(support)
 
-print("Over-sampling ratio:",sigma)
+print("Over-sampling ratio:",osr)
 
 print("Setting up the pattern ...")
 
@@ -110,6 +113,8 @@ for i in range(support.shape[0]):
         if support[i][j]>0:
             support[i][j]=1
 
+start_support=support
+
 print("Initializing density ...")
 
 data=input_data
@@ -132,6 +137,9 @@ print("Mainloop ...")
 for i_step in tqdm(range(STEPS)):
     data=alg.HIO(intensities, support, data, HIO_ITERATIONS , HIO_BETA, IMPOSE_REALITY)
     data=alg.ER(intensities, support, data, ER_ITERATIONS, IMPOSE_REALITY)
+    if i_step%10==0:
+        support=alg.ShrinkWrap(data, start_support, sigma, tau)
+        print_modulus_raw(support, "OUTPUT/new_support.pgm", 8)
     error=alg.get_error(data, support, intensities)
     error_file.write(str(i_step)+"   "+str(error)+"\n")
     print_modulus_raw(data, "OUTPUT/density.pgm", 8)
