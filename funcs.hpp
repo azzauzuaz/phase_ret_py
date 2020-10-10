@@ -17,6 +17,6 @@ py::array_t<std::complex<double>, py::array::c_style> ER(py::array_t<double, py:
 
 py::array_t<std::complex<double>, py::array::c_style> HIO(py::array_t<double, py::array::c_style> intensities, py::array_t<int, py::array::c_style> support, py::array_t<std::complex<double>, py::array::c_style> r_space, int n_iterations, double beta, bool impose_reality);
 
-py::array_t<int, py::array::c_style> ShrinkWrap(py::array_t<std::complex<double>, py::array::c_style> r_space, py::array_t<int, py::array::c_style> support, double sigma, double tau);
+py::array_t<int, py::array::c_style> ShrinkWrap(py::array_t<std::complex<double>, py::array::c_style> r_space, py::array_t<int, py::array::c_style> original_support, double sigma, double tau);
 
 double get_error(py::array_t<std::complex<double>, py::array::c_style> data, py::array_t<int, py::array::c_style> support, py::array_t<double, py::array::c_style> intensities);

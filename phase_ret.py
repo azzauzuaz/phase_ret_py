@@ -44,16 +44,16 @@ def print_modulus_raw(comp_data, filename, bits):
 alg.init()
 
 STEPS=4000
-ER_ITERATIONS=20
-HIO_ITERATIONS=20
+ER_ITERATIONS=10
+HIO_ITERATIONS=30
 SQUARE_ROOT=True
 MASK=False
 
 POISSON=True
 photons=2000000
 
-sigma=4
-tau=0.04
+sigma=2
+tau=0.08
 
 IMPOSE_REALITY=False
 HIO_BETA=0.75
@@ -137,7 +137,7 @@ print("Mainloop ...")
 for i_step in tqdm(range(STEPS)):
     data=alg.HIO(intensities, support, data, HIO_ITERATIONS , HIO_BETA, IMPOSE_REALITY)
     data=alg.ER(intensities, support, data, ER_ITERATIONS, IMPOSE_REALITY)
-    if i_step%10==0:
+    if (i_step+1)%10==0:
         support=alg.ShrinkWrap(data, start_support, sigma, tau)
         print_modulus_raw(support, "OUTPUT/new_support.pgm", 8)
     error=alg.get_error(data, support, intensities)

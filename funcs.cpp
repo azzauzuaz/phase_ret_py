@@ -176,10 +176,13 @@ py::array_t<std::complex<double>, py::array::c_style> HIO(py::array_t<double, py
     return output;
 };
 
-py::array_t<int, py::array::c_style> ShrinkWrap(py::array_t<std::complex<double>, py::array::c_style> r_space, py::array_t<int, py::array::c_style> support, double sigma, double tau){
+py::array_t<int, py::array::c_style> ShrinkWrap(py::array_t<std::complex<double>, py::array::c_style> r_space, py::array_t<int, py::array::c_style> original_support, double sigma, double tau){
 
     py::buffer_info data_buf = r_space.request();
     std::complex<double> *data_ptr = (std::complex<double> *) data_buf.ptr;
+
+    py::buffer_info orig_buf = original_support.request();
+    int *original_ptr = (int *) orig_buf.ptr;
 
     int x_dim=data_buf.shape[0];
     int y_dim=data_buf.shape[1];
@@ -239,7 +242,6 @@ py::array_t<int, py::array::c_style> ShrinkWrap(py::array_t<std::complex<double>
     double max=0;
     for(int i=0; i<npix; i++){
         double val=sqrt(data[i][0]*data[i][0] + data[i][1]*data[i][1]);
-        //if(original[i]>0)
         if(val>max)
             max=val;
     }
@@ -253,8 +255,7 @@ py::array_t<int, py::array::c_style> ShrinkWrap(py::array_t<std::complex<double>
         out_ptr[i]=0;
         double val=sqrt(data[i][0]*data[i][0]+ data[i][1]*data[i][1]);
         if(val>tau*max)
-            //if(original[i]>0)
-            out_ptr[i]=1;
+            out_ptr[i]=1*original_ptr[i];
     }
 
     fftw_destroy_plan(gauss_p2k);
